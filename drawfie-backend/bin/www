@@ -34,7 +34,7 @@ const users = [];
 io.on("connection", (socket) => {
   console.log("A user connected emit user connected: " + socket.id);
 
-  users.push(socket.id);
+  users.push({ id: socket.id, isReady: false });
   socket.broadcast.emit("updateUsers", users);
 
   socket.on("draw", (data) => {
@@ -42,12 +42,25 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    const idx = users.indexOf(socket.id);
+    const idx = users.findIndex((user) => user.id === socket.id);
     if (idx !== -1) {
       users.splice(idx, 1); // Correctly remove user from array
     }
     console.log("User disconnected and update users: " + socket.id);
     socket.broadcast.emit("updateUsers", users);
+  });
+
+  socket.on("setReady", (isReady) => {
+    const currentUser = users.find((u) => u.id === socket.id);
+    currentUser.isReady = isReady;
+    io.emit("updateUsers", users);
+
+    // Check if all users are ready
+    if (Object.values(users).every((user) => user.isReady)) {
+      io.emit("canStartGame", true);
+    } else {
+      io.emit("canStartGame", false);
+    }
   });
 });
 
