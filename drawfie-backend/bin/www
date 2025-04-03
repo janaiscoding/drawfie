@@ -29,16 +29,25 @@ const io = new Server(server, {
   },
 });
 
-const users = [];
+const users = [
+  {
+    id: "123",
+    name: "Dummy user",
+    isReady: true,
+  },
+];
+const guesses = [];
 
 io.on("connection", (socket) => {
   console.log("A user connected emit user connected: " + socket.id);
 
-  users.push({ id: socket.id, isReady: false });
-  socket.broadcast.emit("updateUsers", users);
+  users.push({ id: socket.id, isReady: false, name: "" });
+
+  console.log("Updated users list:", users);
+  io.emit("updateUsers", users);
 
   socket.on("draw", (data) => {
-    socket.broadcast.emit("draw", data);
+    io.emit("draw", data);
   });
 
   socket.on("disconnect", () => {
@@ -47,7 +56,7 @@ io.on("connection", (socket) => {
       users.splice(idx, 1); // Correctly remove user from array
     }
     console.log("User disconnected and update users: " + socket.id);
-    socket.broadcast.emit("updateUsers", users);
+    io.emit("updateUsers", users);
   });
 
   socket.on("setReady", (isReady) => {
@@ -62,13 +71,22 @@ io.on("connection", (socket) => {
       io.emit("canStartGame", false);
     }
   });
-});
 
-// app.get("/reset-users", (req, res) => {
-//   users.length = 0; // Clears the users array
-//   io.emit("updateUsers", users); // Broadcast an empty list
-//   res.send("All users have been cleared.");
-// });
+  socket.on("addGuess", (guess) => {
+    console.log("addGuess", guess);
+    guesses.push({
+      id: socket.id,
+      guess,
+    });
+
+    io.emit("updateGuesses", guesses);
+  });
+
+  socket.on("stopGame", () => {
+    users = [];
+    guesses = [];
+  });
+});
 
 /**
  * Listen on provided port, on all network interfaces.

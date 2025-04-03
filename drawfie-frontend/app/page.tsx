@@ -11,6 +11,9 @@ const DrawingGame = () => {
 
   const [isConnected, setIsConnected] = useState(false);
   const [canStartGame, setCanStartGame] = useState(false);
+
+  const [guess, setGuess] = useState("");
+  const [guesses, setGuesses] = useState([]);
   const [users, setUsers] = useState(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
@@ -32,7 +35,14 @@ const DrawingGame = () => {
       setIsConnected(true);
     }
 
+    socket.on("updateUsers", (users) => {
+      console.log("received new users", users);
+      setUsers(users);
+    });
+
     return () => {
+      console.log("on stop game");
+      socket.emit("stopGame");
       socket.disconnect();
     };
   }, []);
@@ -65,12 +75,12 @@ const DrawingGame = () => {
       }
     });
 
-    socket.on("updateUsers", (users) => {
-      console.log("users", users);
-    });
-
     socket.on("canStartGame", (canStartGame) => {
       setCanStartGame(canStartGame);
+    });
+
+    socket.on("updateGuesses", (guesses) => {
+      setGuesses(guesses);
     });
   }, []);
 
@@ -115,6 +125,12 @@ const DrawingGame = () => {
     setLastCoords(null);
   };
 
+  const addGuess = () => {
+    if (!guess) return;
+
+    socket.emit("addGuess", guess);
+  };
+
   const toggleReady = () => {
     const newReadyState = !isReady;
     setIsReady(newReadyState);
@@ -137,12 +153,34 @@ const DrawingGame = () => {
       />
 
       <div>
+        <div>
+          <h1>connected users</h1>
+          {users && users.map((user) => <p key={user.id}> {user.id} </p>)}
+        </div>
+
         <h1>Actions</h1>
         <div className="actions__buttons">
           <button onClick={toggleReady}>{isReady ? "Unready" : "Mark as Ready"}</button>
           <button disabled={!canStartGame} onClick={startGame}>
             Start
           </button>
+        </div>
+
+        <div>
+          <input onChange={(e) => setGuess(e.target.value)}></input>
+          <button onClick={addGuess} disabled={!guess}>
+            Add guess
+          </button>
+        </div>
+        <div>
+          <h2>Current guesses</h2>
+          {guesses &&
+            guesses.map((g, i) => (
+              <div key={i}>
+                <p> {g.guess}</p>
+                <button>Mark as correct</button>
+              </div>
+            ))}
         </div>
       </div>
     </div>
