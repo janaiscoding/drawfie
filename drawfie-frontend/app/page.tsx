@@ -142,7 +142,7 @@ const DrawingGame = () => {
   };
 
   return (
-    <div className="main-container">
+    <div className="main-container text-white">
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -154,11 +154,17 @@ const DrawingGame = () => {
 
       <div>
         <div>
-          <h1>connected users</h1>
-          {users && users.map((user) => <p key={user.id}> {user.id} </p>)}
+          <h1 className="text-3xl">connected users</h1>
+          {users &&
+            users.map((user) => (
+              <div className="flex gap-2" key={user.id}>
+                <p> {user.id} </p>
+                <p>{user.isReady ? "Ready" : "Not ready"}</p>
+              </div>
+            ))}
         </div>
 
-        <h1>Actions</h1>
+        <h1 className="text-3xl">Actions</h1>
         <div className="actions__buttons">
           <button onClick={toggleReady}>{isReady ? "Unready" : "Mark as Ready"}</button>
           <button disabled={!canStartGame} onClick={startGame}>
