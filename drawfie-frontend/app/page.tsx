@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
+import { Users } from "./components/Users";
 
 const socket = io("http://localhost:4000", { autoConnect: false });
 
@@ -9,13 +10,14 @@ const DrawingGame = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D>(null);
 
+  const [users, setUsers] = useState<{ id: string; name: string; isReady: boolean; points: number }[] | null>(null);
+
   // every user is ready
   const [canStartGame, setCanStartGame] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
 
   const [guess, setGuess] = useState("");
   const [guesses, setGuesses] = useState<{ guess: string; userId: string }>([]);
-  const [users, setUsers] = useState(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -25,9 +27,6 @@ const DrawingGame = () => {
   // only one user draws at a time
   // clear all
   // colors, pencils, fill bucket, etc
-  // input for guessing
-  // verify button for accepting user's guess
-  // score
   // next user's turn
 
   useEffect(() => {
@@ -154,23 +153,18 @@ const DrawingGame = () => {
         onMouseOut={stopDrawing}
       />
 
-      <div>
-        <div>
-          <h1 className="text-3xl">connected users</h1>
-          {users &&
-            users.map((user) => (
-              <div className="flex gap-2" key={user.id}>
-                <p> {user.id} </p>
-                <p>{user.isReady ? "Ready" : "Not ready"}</p>
-              </div>
-            ))}
-        </div>
+      <Users users={users} />
 
+      <div>
         <h1 className="text-3xl">Actions</h1>
         <div className="actions__buttons">
           <button onClick={toggleReady}>{isReady ? "Unready" : "Mark as Ready"}</button>
-          <button disabled={!canStartGame} onClick={startGame}>
-            Start
+          <button
+            className={`${canStartGame ? "bg-green-500" : "bg-zinc-500"} p-2 text-white rounded-md transition`}
+            disabled={!canStartGame}
+            onClick={startGame}
+          >
+            Start game
           </button>
         </div>
 
