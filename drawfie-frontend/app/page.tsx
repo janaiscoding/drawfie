@@ -9,11 +9,12 @@ const DrawingGame = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D>(null);
 
-  const [isConnected, setIsConnected] = useState(false);
+  // every user is ready
   const [canStartGame, setCanStartGame] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const [guess, setGuess] = useState("");
-  const [guesses, setGuesses] = useState([]);
+  const [guesses, setGuesses] = useState<{ guess: string; userId: string }>([]);
   const [users, setUsers] = useState(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
@@ -30,10 +31,7 @@ const DrawingGame = () => {
   // next user's turn
 
   useEffect(() => {
-    if (!isConnected) {
-      socket.connect();
-      setIsConnected(true);
-    }
+    socket.connect();
 
     socket.on("updateUsers", (users) => {
       console.log("received new users", users);
@@ -41,8 +39,6 @@ const DrawingGame = () => {
     });
 
     return () => {
-      console.log("on stop game");
-      socket.emit("stopGame");
       socket.disconnect();
     };
   }, []);
@@ -96,7 +92,7 @@ const DrawingGame = () => {
   };
 
   const draw = (e) => {
-    if (!isDrawing || !ctxRef.current) return;
+    if (!isDrawing || !ctxRef.current || !gameStarted) return;
     const x = e.nativeEvent.offsetX;
     const y = e.nativeEvent.offsetY;
 
@@ -126,8 +122,7 @@ const DrawingGame = () => {
   };
 
   const addGuess = () => {
-    if (!guess) return;
-
+    console.log("add guess", guess);
     socket.emit("addGuess", guess);
   };
 
@@ -138,7 +133,15 @@ const DrawingGame = () => {
   };
 
   const startGame = () => {
-    console.log("can play now :D ");
+    setGameStarted(true);
+  };
+
+  const markGuessAsCorrect = (guess) => {
+    socket.emit("correctGuess", guess);
+  };
+
+  const kickAllUsers = () => {
+    socket.emit("kickAllUsers");
   };
 
   return (
@@ -149,7 +152,6 @@ const DrawingGame = () => {
         onMouseMove={draw}
         onMouseUp={stopDrawing}
         onMouseOut={stopDrawing}
-        style={{ border: "1px solid black" }}
       />
 
       <div>
@@ -173,7 +175,7 @@ const DrawingGame = () => {
         </div>
 
         <div>
-          <input onChange={(e) => setGuess(e.target.value)}></input>
+          <input className="border" onChange={(e) => setGuess(e.target.value)}></input>
           <button onClick={addGuess} disabled={!guess}>
             Add guess
           </button>
@@ -182,13 +184,17 @@ const DrawingGame = () => {
           <h2>Current guesses</h2>
           {guesses &&
             guesses.map((g, i) => (
-              <div key={i}>
+              <div className="flex gap-1" key={i}>
                 <p> {g.guess}</p>
-                <button>Mark as correct</button>
+                <button onClick={() => markGuessAsCorrect(g)}>Mark as correct</button>
               </div>
             ))}
         </div>
       </div>
+
+      <button className="border" onClick={kickAllUsers}>
+        kick all
+      </button>
     </div>
   );
 };

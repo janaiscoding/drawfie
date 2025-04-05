@@ -29,19 +29,21 @@ const io = new Server(server, {
   },
 });
 
-const users = [
+let users = [
   {
     id: "123",
     name: "Dummy user",
     isReady: true,
+    points: 0,
   },
 ];
-const guesses = [];
+
+let guesses = [];
 
 io.on("connection", (socket) => {
   console.log("A user connected emit user connected: " + socket.id);
 
-  users.push({ id: socket.id, isReady: false, name: "" });
+  users.push({ id: socket.id, isReady: false, name: "", points: 0 });
 
   console.log("Updated users list:", users);
   io.emit("updateUsers", users);
@@ -53,9 +55,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const idx = users.findIndex((user) => user.id === socket.id);
     if (idx !== -1) {
-      users.splice(idx, 1); // Correctly remove user from array
+      users.splice(idx, 1);
     }
-    console.log("User disconnected and update users: " + socket.id);
+
+    console.log(`user ${socket.id} disconnected, update users`, users);
     io.emit("updateUsers", users);
   });
 
@@ -64,7 +67,6 @@ io.on("connection", (socket) => {
     currentUser.isReady = isReady;
     io.emit("updateUsers", users);
 
-    // Check if all users are ready
     if (Object.values(users).every((user) => user.isReady)) {
       io.emit("canStartGame", true);
     } else {
@@ -75,16 +77,33 @@ io.on("connection", (socket) => {
   socket.on("addGuess", (guess) => {
     console.log("addGuess", guess);
     guesses.push({
-      id: socket.id,
+      userId: socket.id,
       guess,
     });
 
     io.emit("updateGuesses", guesses);
   });
 
-  socket.on("stopGame", () => {
+  socket.on("correctGuess", (guess) => {
+    const userToAward = users.find((user) => user.id === guess.userId);
+    if (!userToAward) return;
+
+    userToAward.points += 1;
+
+    console.log(userToAward, users);
+    io.emit("updateUsers", users);
+  });
+
+  socket.on("kickAllUsers", () => {
+    console.log("kick all users");
     users = [];
     guesses = [];
+    io.emit("updateUsers", users);
+    io.emit("updateGuesses", guesses);
+
+    io.sockets.sockets.forEach((socket) => {
+      socket.disconnect(true);
+    });
   });
 });
 
